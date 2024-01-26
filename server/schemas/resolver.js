@@ -1,40 +1,53 @@
 const { User } = require('../models');
-const {signToken, AuthError } = require('../utils/auth');
+const { signToken, AuthError } = require('../utils/auth');
 
 const resolver = {
-    Query: {
-        me: async (parent, args, context) => {
-            if (context.user) {
-                const userData  = await User.findOne({ _id: context.user._id }).select("__v -password").populate('savedBooks');
+  Query: {
+    me: async (parent, args, context) => {
+      if (context.user) {
+        const userData = await User.findOne({ _id: context.user._id }).select("__v -password").populate('savedBooks');
+        return userData;
+      }
+      throw new AuthError();
+    },
+  },
 
-                return userData; 
-            }
-            throw AuthError;
-        },
+  Mutation: {
+    addUser: async (parent, { email, password }) => {
+      const addedUser = await User.findOne({ email });
+
+      if (!addedUser) {
+        throw new AuthError();
+      }
+
+      const correctPassword = await addedUser.correctPassword(password);
+
+      if (!correctPassword) {
+        throw new AuthError();
+      }
+
+      const coinToken = signToken(addedUser);
+
+      return { coinToken, addedUser };
     },
 
-    Mutation: {
-        addUser: async (parent, {email, password}) => {
-            const addedUser = await User.findOne({ email });
+    login: async (parent, { email, password }) => {
+      const alreadyAUser = await User.findOne({ email });
 
-            if (!addedUser) {
-                throw new AuthError;
-            }
+      if (!alreadyAUser) {
+        throw new AuthError();
+      }
 
-            const correctPassowrd = await addedUser.correctPassowrd(password);
+      const loginPassword = await alreadyAUser.correctPassword(password);
 
-            if (!correctPassowrd) {
-                throw new AuthError
-            }
+      if (!loginPassword) {
+        throw new AuthError();
+      }
 
-            const coinToken = signToken(addedUser);
+      const loginToken = signToken(alreadyAUser);
+      return { loginToken, alreadyAUser };
+    },
+  },
+};
 
-            return {coinToken, addedUser };
-        },
-    }
-}
-
-
-
-
-module.exports = resolver; 
+module.exports = resolver;
