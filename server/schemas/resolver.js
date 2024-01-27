@@ -1,5 +1,5 @@
 const { User } = require('../models');
-const { signToken, AuthError } = require('../utils/auth');
+const { AuthError } = require('../utils/auth');
 
 const resolver = {
   Query: {
@@ -48,30 +48,50 @@ const resolver = {
       return { loginToken, alreadyAUser };
     },
 
-
     saveBook: async (parent, { bookDB }, context) => {
-        try {
-          if (context.user) {
-            const updateUser = await User.findByIdAndUpdate(
-              { _id: context.user._id },
-              { $addToSet: { savedBooks: bookDB } },
-              { new: true }
-            );
-  
-            if (!updateUser) {
-              throw new AuthError("Can't find user");
-            }
-  
-            return updateUser;
-          } else {
-            throw new AuthError("Auth token is lost/missing!");
+      try {
+        if (context.user) {
+          const updateUser = await User.findByIdAndUpdate(
+            { _id: context.user._id },
+            { $addToSet: { savedBooks: bookDB } },
+            { new: true }
+          );
+
+          if (!updateUser) {
+            throw new AuthError("Can't find user");
           }
-        } catch (error) {
-          console.error(error);
-          throw new Error("There a ERROR!!");
+
+          return updateUser;
+        } else {
+          throw new AuthError("Auth token is lost/missing!");
         }
-      },
+      } catch (err) {
+        console.error(err);
+        throw new Error("There's an error!!");
+      }
     },
-  };
-  
-  module.exports = resolver;
+
+    removeBook: async (parent, { bookId }, context) => {
+      try {
+        if (context.user) {
+          const updateUser = await User.findByIdAndUpdate(
+            { _id: context.user._id },
+            { $pull: { savedBooks: { _id: bookId } } },
+            { new: true }
+          );
+          if (!updateUser) {
+            throw new AuthError("Can't find this person!");
+          }
+          return updateUser;
+        } else {
+          throw new AuthError("Auth token is still missing/lost");
+        }
+      } catch (err) {
+        console.error(err);
+        throw new Error("There's an error removing the book");
+      }
+    },
+  },
+};
+
+module.exports = resolver;
