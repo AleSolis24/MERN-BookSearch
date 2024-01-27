@@ -47,7 +47,31 @@ const resolver = {
       const loginToken = signToken(alreadyAUser);
       return { loginToken, alreadyAUser };
     },
-  },
-};
 
-module.exports = resolver;
+
+    saveBook: async (parent, { bookDB }, context) => {
+        try {
+          if (context.user) {
+            const updateUser = await User.findByIdAndUpdate(
+              { _id: context.user._id },
+              { $addToSet: { savedBooks: bookDB } },
+              { new: true }
+            );
+  
+            if (!updateUser) {
+              throw new AuthError("Can't find user");
+            }
+  
+            return updateUser;
+          } else {
+            throw new AuthError("Auth token is lost/missing!");
+          }
+        } catch (error) {
+          console.error(error);
+          throw new Error("There a ERROR!!");
+        }
+      },
+    },
+  };
+  
+  module.exports = resolver;
